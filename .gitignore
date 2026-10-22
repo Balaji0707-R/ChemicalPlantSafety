@@ -36,3 +36,8 @@ Thumbs.db
 migration-backup/
 
 downloaded_test.pdf
+
+# Local uploads, test documents, and database backups
+backend/uploads/
+downloaded_test.pdf
+migration-backup/
