@@ -1,0 +1,38 @@
+﻿# Environment variables and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local databases and uploaded files
+*.sqlite
+*.db
+uploads/
+backend/uploads/
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backups and temporary files
+*.before-mongodb
+migration-backup/
+
+downloaded_test.pdf
