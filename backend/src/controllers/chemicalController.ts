@@ -6,6 +6,8 @@ import {
   updateChemical,
   deleteChemical,
 } from "../services/chemicalService.js";
+import { parsePositiveInteger, requiredText } from "../utils/validation.js";
+import { invalidateDashboardCache } from "../services/dashboardService.js";
 
 export const getChemicals = async (
   _req: Request,
@@ -27,9 +29,9 @@ export const getChemical = async (
   res: Response
 ) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInteger(req.params.id);
 
-    if (Number.isNaN(id)) {
+    if (id === null) {
       res.status(400).json({
         message: "Invalid chemical ID",
       });
@@ -67,7 +69,9 @@ export const addChemical = async (
       description,
     } = req.body;
 
-    if (!chemical_name) {
+    const normalizedName = requiredText(chemical_name);
+
+    if (!normalizedName) {
       res.status(400).json({
         message: "chemical_name is required",
       });
@@ -75,12 +79,13 @@ export const addChemical = async (
     }
 
     const chemical = await createChemical({
-      chemical_name,
+      chemical_name: normalizedName,
       cas_number,
       hazard_class,
       physical_state,
       description,
     });
+    await invalidateDashboardCache();
 
     res.status(201).json(chemical);
   } catch (error) {
@@ -96,9 +101,9 @@ export const editChemical = async (
   res: Response
 ) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInteger(req.params.id);
 
-    if (Number.isNaN(id)) {
+    if (id === null) {
       res.status(400).json({
         message: "Invalid chemical ID",
       });
@@ -113,7 +118,9 @@ export const editChemical = async (
       description,
     } = req.body;
 
-    if (!chemical_name) {
+    const normalizedName = requiredText(chemical_name);
+
+    if (!normalizedName) {
       res.status(400).json({
         message: "chemical_name is required",
       });
@@ -121,7 +128,7 @@ export const editChemical = async (
     }
 
     const chemical = await updateChemical(id, {
-      chemical_name,
+      chemical_name: normalizedName,
       cas_number,
       hazard_class,
       physical_state,
@@ -134,6 +141,7 @@ export const editChemical = async (
       });
       return;
     }
+    await invalidateDashboardCache();
 
     res.json(chemical);
   } catch (error) {
@@ -149,9 +157,9 @@ export const removeChemical = async (
   res: Response
 ) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInteger(req.params.id);
 
-    if (Number.isNaN(id)) {
+    if (id === null) {
       res.status(400).json({
         message: "Invalid chemical ID",
       });
@@ -166,6 +174,7 @@ export const removeChemical = async (
       });
       return;
     }
+    await invalidateDashboardCache();
 
     res.json({
       message: "Chemical deleted successfully",

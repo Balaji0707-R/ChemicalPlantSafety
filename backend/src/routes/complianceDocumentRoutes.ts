@@ -11,8 +11,12 @@ import {
 import {
   uploadComplianceDocument,
 } from "../middleware/complianceDocumentUpload.js";
+import { authorize } from "../middleware/auth.js";
+import { API_ROLE_ACCESS } from "../auth/permissions.js";
 
 const router = Router();
+
+router.use(authorize(...API_ROLE_ACCESS.complianceRead));
 
 // GET /api/compliance-documents
 // Get all uploaded documents
@@ -29,6 +33,7 @@ router.get(
 // Upload a PDF document
 router.post(
   "/",
+  authorize(...API_ROLE_ACCESS.complianceWrite),
   uploadComplianceDocument,
   uploadDocument
 );
@@ -44,6 +49,7 @@ router.get(
 // Delete a document
 router.delete(
   "/:id",
+  authorize(...API_ROLE_ACCESS.complianceWrite),
   removeDocument
 );
 

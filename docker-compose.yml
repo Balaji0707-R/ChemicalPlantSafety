@@ -1,0 +1,78 @@
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongodb:
+    image: mongo:8
+    container_name: chemical-mongodb
+    restart: unless-stopped
+    volumes:
+      - chemical-mongodb-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: sh -c "node dist/scripts/migrate.js && npm start"
+    environment:
+      DB_HOST: host.docker.internal
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:?Set DB_NAME for the deployment database}
+      DB_USER: ${DB_USER:?Set DB_USER for the deployment database}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD for the deployment database}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?Set AUTH_JWT_SECRET for the deployment}
+      MONGODB_URI: mongodb://chemical-mongodb:27017/chemical_safety_db
+      PORT: ${PORT:-5000}
+      REDIS_URL: redis://redis:6379
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5173:80"
+
+volumes:
+  chemical-mongodb-data:
+    external: true
+    name: chemical-mongodb-data

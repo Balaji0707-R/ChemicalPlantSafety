@@ -1,22 +1,25 @@
-import dotenv from "dotenv";
 import { Pool } from "pg";
-
-dotenv.config();
+import { env } from "./env.js";
 
 export const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  host: env.database.host,
+  port: env.database.port,
+  database: env.database.name,
+  user: env.database.user,
+  password: env.database.password,
+  max: 10,
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 30000,
 });
 
-export const testDatabaseConnection = async (): Promise<void> => {
+export const testDatabaseConnection = async (): Promise<boolean> => {
   try {
     const result = await pool.query("SELECT NOW()");
     console.log("PostgreSQL connected successfully");
     console.log("Database time:", result.rows[0].now);
+    return true;
   } catch (error) {
-    console.error("PostgreSQL connection failed:", error);
+    console.error("PostgreSQL connection failed:", error instanceof Error ? error.message : error);
+    return false;
   }
 };

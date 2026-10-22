@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { api } from "../services/api";
+import { useAuth } from "../auth/useAuth";
+import { canManageEmergency } from "../auth/permissions";
 
 import {
   AlertTriangle,
@@ -11,8 +14,6 @@ import {
 } from "lucide-react";
 
 import "../App.css";
-
-const API_BASE_URL = "http://localhost:5000/api";
 
 interface EmergencyContact {
   contact_id: number;
@@ -66,6 +67,8 @@ const emptyProcedureForm: ProcedureForm = {
 };
 
 function Emergency() {
+  const { user } = useAuth();
+  const canManage = user ? canManageEmergency(user.roleName) : false;
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [procedures, setProcedures] = useState<EmergencyProcedure[]>([]);
 
@@ -104,27 +107,12 @@ function Emergency() {
         contactsResponse,
         proceduresResponse,
       ] = await Promise.all([
-        fetch(`${API_BASE_URL}/emergency/contacts`),
-        fetch(`${API_BASE_URL}/emergency/procedures`),
+        api.get<EmergencyContact[]>("/emergency/contacts"),
+        api.get<EmergencyProcedure[]>("/emergency/procedures"),
       ]);
 
-      if (
-        !contactsResponse.ok ||
-        !proceduresResponse.ok
-      ) {
-        throw new Error(
-          "Failed to load emergency data"
-        );
-      }
-
-      const contactsData =
-        await contactsResponse.json();
-
-      const proceduresData =
-        await proceduresResponse.json();
-
-      setContacts(contactsData);
-      setProcedures(proceduresData);
+      setContacts(contactsResponse.data);
+      setProcedures(proceduresResponse.data);
     } catch (err) {
       console.error(err);
 
@@ -137,7 +125,11 @@ function Emergency() {
   };
 
   useEffect(() => {
-    loadEmergencyData();
+    const timer = window.setTimeout(() => {
+      void loadEmergencyData();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   // =====================================================
@@ -183,20 +175,7 @@ function Emergency() {
     try {
       setError("");
 
-      const url = editingContactId
-        ? `${API_BASE_URL}/emergency/contacts/${editingContactId}`
-        : `${API_BASE_URL}/emergency/contacts`;
-
-      const method = editingContactId
-        ? "PUT"
-        : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const payload = {
           contact_name:
             contactForm.contact_name,
           organization:
@@ -208,15 +187,12 @@ function Emergency() {
             contactForm.email || null,
           is_active:
             contactForm.is_active,
-        }),
-      });
+        };
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(
-          data.message ||
-            "Failed to save emergency contact"
-        );
+      if (editingContactId) {
+        await api.put(`/emergency/contacts/${editingContactId}`, payload);
+      } else {
+        await api.post("/emergency/contacts", payload);
       }
 
       await loadEmergencyData();
@@ -246,21 +222,7 @@ function Emergency() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/emergency/contacts/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-
-        throw new Error(
-          data.message ||
-            "Failed to delete emergency contact"
-        );
-      }
+      await api.delete(`/emergency/contacts/${id}`);
 
       await loadEmergencyData();
     } catch (err) {
@@ -319,20 +281,7 @@ function Emergency() {
     try {
       setError("");
 
-      const url = editingProcedureId
-        ? `${API_BASE_URL}/emergency/procedures/${editingProcedureId}`
-        : `${API_BASE_URL}/emergency/procedures`;
-
-      const method = editingProcedureId
-        ? "PUT"
-        : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const payload = {
           procedure_name:
             procedureForm.procedure_name,
           emergency_type:
@@ -342,16 +291,12 @@ function Emergency() {
           evacuation_area:
             procedureForm.evacuation_area ||
             null,
-        }),
-      });
+        };
 
-      if (!response.ok) {
-        const data = await response.json();
-
-        throw new Error(
-          data.message ||
-            "Failed to save emergency procedure"
-        );
+      if (editingProcedureId) {
+        await api.put(`/emergency/procedures/${editingProcedureId}`, payload);
+      } else {
+        await api.post("/emergency/procedures", payload);
       }
 
       await loadEmergencyData();
@@ -381,21 +326,7 @@ function Emergency() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/emergency/procedures/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-
-        throw new Error(
-          data.message ||
-            "Failed to delete emergency procedure"
-        );
-      }
+      await api.delete(`/emergency/procedures/${id}`);
 
       await loadEmergencyData();
     } catch (err) {
@@ -462,13 +393,13 @@ function Emergency() {
             </p>
           </div>
 
-          <button
+          {canManage && <button
             className="primary-button"
             onClick={openAddContact}
           >
             <Plus size={18} />
             Add Contact
-          </button>
+          </button>}
         </div>
 
         {loading ? (
@@ -542,7 +473,7 @@ function Emergency() {
                     </td>
 
                     <td>
-                      <div className="table-actions">
+                      {canManage && <div className="table-actions">
 
                         <button
                           className="action-button edit"
@@ -568,7 +499,7 @@ function Emergency() {
                           <Trash2 size={16} />
                         </button>
 
-                      </div>
+                      </div>}
                     </td>
 
                   </tr>
@@ -594,13 +525,13 @@ function Emergency() {
             </p>
           </div>
 
-          <button
+          {canManage && <button
             className="primary-button"
             onClick={openAddProcedure}
           >
             <Plus size={18} />
             Add Procedure
-          </button>
+          </button>}
         </div>
 
         {loading ? (
@@ -630,7 +561,7 @@ function Emergency() {
                     </span>
                   </div>
 
-                  <div className="table-actions">
+                  {canManage && <div className="table-actions">
 
                     <button
                       className="action-button edit"
@@ -656,7 +587,7 @@ function Emergency() {
                       <Trash2 size={16} />
                     </button>
 
-                  </div>
+                  </div>}
                 </div>
 
                 <div className="procedure-content">
@@ -694,7 +625,7 @@ function Emergency() {
           CONTACT MODAL
       ===================================================== */}
 
-      {showContactForm && (
+      {canManage && showContactForm && (
         <div className="modal-overlay">
 
           <div className="modal-card">
@@ -896,7 +827,7 @@ function Emergency() {
           PROCEDURE MODAL
       ===================================================== */}
 
-      {showProcedureForm && (
+      {canManage && showProcedureForm && (
         <div className="modal-overlay">
 
           <div className="modal-card modal-large">

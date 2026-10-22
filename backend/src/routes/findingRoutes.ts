@@ -8,8 +8,12 @@ import {
   editFinding,
   removeFinding,
 } from "../controllers/findingController.js";
+import { authorize } from "../middleware/auth.js";
+import { API_ROLE_ACCESS } from "../auth/permissions.js";
 
 const router = Router();
+
+router.use(authorize(...API_ROLE_ACCESS.findingsRead));
 
 
 // GET all findings
@@ -33,6 +37,7 @@ router.get(
 // CREATE finding
 router.post(
   "/",
+  authorize(...API_ROLE_ACCESS.findingsWrite),
   addFinding
 );
 
@@ -40,6 +45,7 @@ router.post(
 // UPDATE finding
 router.put(
   "/:id",
+  authorize(...API_ROLE_ACCESS.findingsWrite),
   editFinding
 );
 
@@ -47,6 +53,7 @@ router.put(
 // DELETE finding
 router.delete(
   "/:id",
+  authorize(...API_ROLE_ACCESS.findingsWrite),
   removeFinding
 );
 

@@ -7,7 +7,7 @@ import {
   Siren,
   Activity,
 } from "lucide-react";
-import axios from "axios";
+import { api } from "../services/api";
 
 interface DashboardStats {
   chemicals: number;
@@ -15,6 +15,16 @@ interface DashboardStats {
   incidents: number;
   compliance: number;
   emergency_contacts: number;
+  recent_activity: DashboardActivity[];
+}
+
+interface DashboardActivity {
+  activity_type: "INSPECTION" | "INCIDENT" | "COMPLIANCE";
+  activity_id: number;
+  title: string;
+  detail: string;
+  status: string;
+  occurred_at: string;
 }
 
 const Dashboard = () => {
@@ -24,6 +34,7 @@ const Dashboard = () => {
     incidents: 0,
     compliance: 0,
     emergency_contacts: 0,
+    recent_activity: [],
   });
 
   const [loading, setLoading] = useState(true);
@@ -34,11 +45,9 @@ const Dashboard = () => {
       try {
         setLoading(true);
 
-        const response = await axios.get(
-          "http://localhost:5000/api/dashboard/stats"
-        );
+        const response = await api.get("/dashboard/stats");
 
-        setStats(response.data.data);
+        setStats(response.data.data as DashboardStats);
         setError("");
       } catch (err) {
         console.error("Dashboard API error:", err);
@@ -48,7 +57,11 @@ const Dashboard = () => {
       }
     };
 
-    fetchDashboardStats();
+    const timer = window.setTimeout(() => {
+      void fetchDashboardStats();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const cards = [
@@ -232,18 +245,22 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="empty-activity">
-
-          <Activity size={28} />
-
-          <h3>No recent activity</h3>
-
-          <p>
-            Safety inspections, incidents and compliance activities
-            will appear here.
-          </p>
-
-        </div>
+        {stats.recent_activity.length === 0 ? (
+          <div className="empty-activity">
+            <Activity size={28} />
+            <h3>No recent activity</h3>
+            <p>No inspections, incidents, or compliance records are available.</p>
+          </div>
+        ) : (
+          <div className="activity-list">
+            {stats.recent_activity.map((activity) => (
+              <div className="system-check" key={`${activity.activity_type}-${activity.activity_id}`}>
+                <span>{activity.title} · {activity.detail}</span>
+                <strong>{activity.status}</strong>
+              </div>
+            ))}
+          </div>
+        )}
 
       </div>
 

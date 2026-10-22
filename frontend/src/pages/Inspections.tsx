@@ -8,7 +8,9 @@ import {
   ArrowLeft,
   AlertTriangle,
 } from "lucide-react";
-import axios from "axios";
+import { api } from "../services/api";
+import { useAuth } from "../auth/useAuth";
+import { canManageInspections } from "../auth/permissions";
 
 
 // =====================================================
@@ -68,7 +70,7 @@ interface FindingForm {
 // API URL
 // =====================================================
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "";
 
 
 // =====================================================
@@ -76,6 +78,8 @@ const API_URL = "http://localhost:5000/api";
 // =====================================================
 
 const Inspections = () => {
+  const { user } = useAuth();
+  const canManage = user ? canManageInspections(user.roleName) : false;
 
   // ===================================================
   // INSPECTIONS
@@ -171,10 +175,10 @@ const Inspections = () => {
         inspectionResponse,
         userResponse,
       ] = await Promise.all([
-        axios.get<Inspection[]>(
+        api.get<Inspection[]>(
           `${API_URL}/inspections`
         ),
-        axios.get<User[]>(
+        api.get<User[]>(
           `${API_URL}/users`
         ),
       ]);
@@ -209,9 +213,11 @@ const Inspections = () => {
 
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
 
-    fetchData();
-
+    return () => window.clearTimeout(timer);
   }, []);
 
 
@@ -303,7 +309,7 @@ const Inspections = () => {
         editingInspectionId !== null
       ) {
 
-        await axios.put(
+        await api.put(
           `${API_URL}/inspections/${editingInspectionId}`,
           inspectionForm
         );
@@ -314,7 +320,7 @@ const Inspections = () => {
 
       } else {
 
-        await axios.post(
+        await api.post(
           `${API_URL}/inspections`,
           inspectionForm
         );
@@ -405,7 +411,7 @@ const Inspections = () => {
 
     try {
 
-      await axios.delete(
+      await api.delete(
         `${API_URL}/inspections/${id}`
       );
 
@@ -451,7 +457,7 @@ const Inspections = () => {
       setError("");
 
       const response =
-        await axios.get<Finding[]>(
+        await api.get<Finding[]>(
           `${API_URL}/findings/inspection/${inspection.inspection_id}`
         );
 
@@ -609,7 +615,7 @@ const Inspections = () => {
         editingFindingId !== null
       ) {
 
-        await axios.put(
+        await api.put(
           `${API_URL}/findings/${editingFindingId}`,
           data
         );
@@ -620,7 +626,7 @@ const Inspections = () => {
 
       } else {
 
-        await axios.post(
+        await api.post(
           `${API_URL}/findings`,
           data
         );
@@ -633,7 +639,7 @@ const Inspections = () => {
 
 
       const response =
-        await axios.get<Finding[]>(
+        await api.get<Finding[]>(
           `${API_URL}/findings/inspection/${selectedInspection.inspection_id}`
         );
 
@@ -720,7 +726,7 @@ const Inspections = () => {
 
     try {
 
-      await axios.delete(
+      await api.delete(
         `${API_URL}/findings/${id}`
       );
 
@@ -732,7 +738,7 @@ const Inspections = () => {
       if (selectedInspection) {
 
         const response =
-          await axios.get<Finding[]>(
+          await api.get<Finding[]>(
             `${API_URL}/findings/inspection/${selectedInspection.inspection_id}`
           );
 
@@ -806,7 +812,7 @@ const Inspections = () => {
           </div>
 
 
-          <button
+          {canManage && <button
             className="inspection-primary-button"
             onClick={() => {
 
@@ -821,7 +827,7 @@ const Inspections = () => {
           >
             <Plus size={18} />
             Add Finding
-          </button>
+          </button>}
 
         </div>
 
@@ -843,7 +849,7 @@ const Inspections = () => {
 
         {/* FINDING FORM */}
 
-        {showFindingForm && (
+        {canManage && showFindingForm && (
 
           <div className="inspection-form-card">
 
@@ -1226,7 +1232,7 @@ const Inspections = () => {
                   </div>
 
 
-                  <div className="finding-actions">
+                  {canManage && <div className="finding-actions">
 
                     <button
                       className="inspection-edit-button"
@@ -1253,7 +1259,7 @@ const Inspections = () => {
                       <Trash2 size={16} />
                     </button>
 
-                  </div>
+                  </div>}
 
                 </div>
 
@@ -1299,7 +1305,7 @@ const Inspections = () => {
         </div>
 
 
-        <button
+        {canManage && <button
           className="inspection-primary-button"
           onClick={() => {
 
@@ -1333,7 +1339,7 @@ const Inspections = () => {
         >
           <Plus size={18} />
           New Inspection
-        </button>
+        </button>}
 
       </div>
 
@@ -1355,7 +1361,7 @@ const Inspections = () => {
 
       {/* INSPECTION FORM */}
 
-      {showInspectionForm && (
+        {canManage && showInspectionForm && (
 
         <div className="inspection-form-card">
 
@@ -1780,7 +1786,7 @@ const Inspections = () => {
 
                       <td>
 
-                        <div className="inspection-actions">
+                        {canManage && <div className="inspection-actions">
 
                           <button
                             className="inspection-edit-button"
@@ -1807,7 +1813,7 @@ const Inspections = () => {
                             <Trash2 size={16} />
                           </button>
 
-                        </div>
+                        </div>}
 
                       </td>
 

@@ -127,8 +127,20 @@ export const addIncident = async (
       status,
     } = req.body;
 
+    if (!req.user) {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
 
-    if (!Number.isInteger(reported_by)) {
+    // Employees may report incidents, but cannot impersonate another reporter
+    // or submit a report already marked resolved/closed.
+    const effectiveReportedBy = req.user.roleName === "EMPLOYEE"
+      ? req.user.userId
+      : reported_by;
+    const effectiveStatus = req.user.roleName === "EMPLOYEE" ? "OPEN" : status;
+
+
+    if (!Number.isInteger(effectiveReportedBy)) {
 
       res.status(400).json({
         message:
@@ -208,13 +220,13 @@ export const addIncident = async (
 
     const incident =
       await createIncident({
-        reported_by,
+        reported_by: effectiveReportedBy,
         incident_type,
         severity,
         location,
         incident_date,
         description,
-        status,
+        status: effectiveStatus,
       });
 
 

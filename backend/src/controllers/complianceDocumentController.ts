@@ -87,12 +87,14 @@ export const uploadDocument = async (
       req.body.document_name ?? ""
     ).trim();
 
-    const uploadedByValue = req.body.uploaded_by;
-    const uploadedBy =
-      uploadedByValue === undefined ||
-      uploadedByValue === ""
-        ? null
-        : Number(uploadedByValue);
+    const uploadedBy = req.user?.userId;
+
+    if (!uploadedBy) {
+      res.status(401).json({
+        message: "Authentication is required.",
+      });
+      return;
+    }
 
     if (
       !Number.isInteger(complianceId) ||
@@ -107,16 +109,6 @@ export const uploadDocument = async (
     if (!documentName) {
       res.status(400).json({
         message: "Document name is required.",
-      });
-      return;
-    }
-
-    if (
-      uploadedBy !== null &&
-      (!Number.isInteger(uploadedBy) || uploadedBy <= 0)
-    ) {
-      res.status(400).json({
-        message: "Invalid uploaded_by user ID.",
       });
       return;
     }

@@ -7,6 +7,7 @@ RUN npm install
 
 COPY tsconfig.json ./
 COPY src ./src
+COPY database ./database
 
 RUN npm run build
 
@@ -20,6 +21,7 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/database ./database
 
 RUN mkdir -p uploads/compliance
 

@@ -12,8 +12,12 @@ import {
   editEmergencyProcedure,
   removeEmergencyProcedure,
 } from "../controllers/emergencyController.js";
+import { authorize } from "../middleware/auth.js";
+import { API_ROLE_ACCESS } from "../auth/permissions.js";
 
 const router = Router();
+
+router.use(authorize(...API_ROLE_ACCESS.emergencyRead));
 
 // =====================================================
 // EMERGENCY CONTACTS
@@ -28,16 +32,19 @@ router.get(
 
 router.post(
   "/contacts",
+  authorize(...API_ROLE_ACCESS.emergencyWrite),
   addEmergencyContact
 );
 
 router.put(
   "/contacts/:id",
+  authorize(...API_ROLE_ACCESS.emergencyWrite),
   editEmergencyContact
 );
 
 router.delete(
   "/contacts/:id",
+  authorize(...API_ROLE_ACCESS.emergencyWrite),
   removeEmergencyContact
 );
 
@@ -57,16 +64,19 @@ router.get(
 
 router.post(
   "/procedures",
+  authorize(...API_ROLE_ACCESS.emergencyWrite),
   addEmergencyProcedure
 );
 
 router.put(
   "/procedures/:id",
+  authorize(...API_ROLE_ACCESS.emergencyWrite),
   editEmergencyProcedure
 );
 
 router.delete(
   "/procedures/:id",
+  authorize(...API_ROLE_ACCESS.emergencyWrite),
   removeEmergencyProcedure
 );
 

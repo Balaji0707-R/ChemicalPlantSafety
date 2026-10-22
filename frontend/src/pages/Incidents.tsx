@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { api } from "../services/api";
+import { useAuth } from "../auth/useAuth";
+import {
+  canCreateIncidents,
+  canDeleteIncidentActions,
+  canDeleteIncidents,
+  canManageIncidentActions,
+  canUpdateIncidents,
+} from "../auth/permissions";
 import {
   Plus,
   Pencil,
@@ -9,7 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "";
 
 // =====================================================
 // TYPES
@@ -121,6 +129,12 @@ const toDateTimeLocal = (value: string) => {
 // =====================================================
 
 function Incidents() {
+  const { user } = useAuth();
+  const canCreate = user ? canCreateIncidents(user.roleName) : false;
+  const canUpdate = user ? canUpdateIncidents(user.roleName) : false;
+  const canDelete = user ? canDeleteIncidents(user.roleName) : false;
+  const canManageActions = user ? canManageIncidentActions(user.roleName) : false;
+  const canDeleteActions = user ? canDeleteIncidentActions(user.roleName) : false;
   // ===================================================
   // INCIDENT STATE
   // ===================================================
@@ -172,10 +186,6 @@ function Incidents() {
   // LOAD DATA
   // ===================================================
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -183,8 +193,8 @@ function Incidents() {
 
       const [incidentResponse, userResponse] =
         await Promise.all([
-          axios.get(`${API_URL}/incidents`),
-          axios.get(`${API_URL}/users`),
+          api.get(`${API_URL}/incidents`),
+          api.get(`${API_URL}/users`),
         ]);
 
       setIncidents(incidentResponse.data);
@@ -196,6 +206,14 @@ function Incidents() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // ===================================================
   // INCIDENT FORM
@@ -281,14 +299,14 @@ function Incidents() {
       };
 
       if (editingIncidentId !== null) {
-        await axios.put(
+        await api.put(
           `${API_URL}/incidents/${editingIncidentId}`,
           payload
         );
 
         setMessage("Incident updated successfully.");
       } else {
-        await axios.post(
+        await api.post(
           `${API_URL}/incidents`,
           payload
         );
@@ -321,7 +339,7 @@ function Incidents() {
     if (!confirmed) return;
 
     try {
-      await axios.delete(
+      await api.delete(
         `${API_URL}/incidents/${id}`
       );
 
@@ -352,7 +370,7 @@ function Incidents() {
       setError("");
       setMessage("");
 
-      const response = await axios.get(
+      const response = await api.get(
         `${API_URL}/incidents/${incidentId}/actions`
       );
 
@@ -463,7 +481,7 @@ function Incidents() {
       };
 
       if (editingActionId !== null) {
-        await axios.put(
+        await api.put(
           `${API_URL}/incidents/actions/${editingActionId}`,
           payload
         );
@@ -472,7 +490,7 @@ function Incidents() {
           "Corrective action updated successfully."
         );
       } else {
-        await axios.post(
+        await api.post(
           `${API_URL}/incidents/actions`,
           payload
         );
@@ -509,7 +527,7 @@ function Incidents() {
     if (!confirmed) return;
 
     try {
-      await axios.delete(
+      await api.delete(
         `${API_URL}/incidents/actions/${actionId}`
       );
 
@@ -601,13 +619,13 @@ function Incidents() {
           </p>
         </div>
 
-        <button
+        {canCreate && <button
           className="incident-primary-button"
           onClick={openNewIncidentForm}
         >
           <Plus size={18} />
           New Incident
-        </button>
+        </button>}
 
       </div>
 
@@ -634,7 +652,7 @@ function Incidents() {
           INCIDENT FORM
       ================================================= */}
 
-      {showIncidentForm && (
+      {(canCreate || canUpdate) && showIncidentForm && (
         <div className="incident-form-card">
 
           <div className="incident-form-header">
@@ -677,25 +695,23 @@ function Incidents() {
                   Reported By
                 </label>
 
-                <select
-                  name="reported_by"
-                  value={incidentForm.reported_by}
-                  onChange={handleIncidentChange}
-                  required
-                >
-                  <option value="">
-                    Select user
-                  </option>
-
-                  {users.map((user) => (
-                    <option
-                      key={user.user_id}
-                      value={user.user_id}
-                    >
-                      {user.full_name}
-                    </option>
-                  ))}
-                </select>
+                {user?.roleName === "EMPLOYEE" ? (
+                  <input value={user.fullName} readOnly aria-label="Reported by" />
+                ) : (
+                  <select
+                    name="reported_by"
+                    value={incidentForm.reported_by}
+                    onChange={handleIncidentChange}
+                    required
+                  >
+                    <option value="">Select user</option>
+                    {users.map((listedUser) => (
+                      <option key={listedUser.user_id} value={listedUser.user_id}>
+                        {listedUser.full_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
 
               </div>
 
@@ -1042,7 +1058,7 @@ function Incidents() {
 
                         {/* EDIT */}
 
-                        <button
+                        {canUpdate && <button
                           className="incident-icon-button"
                           title="Edit Incident"
                           onClick={() =>
@@ -1052,12 +1068,12 @@ function Incidents() {
                           }
                         >
                           <Pencil size={17} />
-                        </button>
+                        </button>}
 
 
                         {/* DELETE */}
 
-                        <button
+                        {canDelete && <button
                           className="incident-icon-button delete"
                           title="Delete Incident"
                           onClick={() =>
@@ -1067,7 +1083,7 @@ function Incidents() {
                           }
                         >
                           <Trash2 size={17} />
-                        </button>
+                        </button>}
 
                       </div>
 
@@ -1118,13 +1134,13 @@ function Incidents() {
 
             <div className="incident-actions-header-buttons">
 
-              <button
+              {canManageActions && <button
                 className="incident-primary-button"
                 onClick={openNewActionForm}
               >
                 <Plus size={18} />
                 Add Action
-              </button>
+              </button>}
 
               <button
                 className="incident-close-button"
@@ -1142,7 +1158,7 @@ function Incidents() {
               ACTION FORM
           ================================================= */}
 
-          {showActionForm && (
+            {canManageActions && showActionForm && (
 
             <div className="corrective-action-form">
 
@@ -1339,13 +1355,13 @@ function Incidents() {
                 added for this incident yet.
               </p>
 
-              <button
+              {canManageActions && <button
                 className="incident-primary-button"
                 onClick={openNewActionForm}
               >
                 <Plus size={18} />
                 Add First Action
-              </button>
+              </button>}
 
             </div>
 
@@ -1427,7 +1443,7 @@ function Incidents() {
 
                     <div className="incident-action-buttons">
 
-                      <button
+                      {canManageActions && <button
                         className="incident-icon-button"
                         title="Edit Action"
                         onClick={() =>
@@ -1437,9 +1453,9 @@ function Incidents() {
                         }
                       >
                         <Pencil size={17} />
-                      </button>
+                      </button>}
 
-                      <button
+                      {canDeleteActions && <button
                         className="incident-icon-button delete"
                         title="Delete Action"
                         onClick={() =>
@@ -1449,7 +1465,7 @@ function Incidents() {
                         }
                       >
                         <Trash2 size={17} />
-                      </button>
+                      </button>}
 
                     </div>
 

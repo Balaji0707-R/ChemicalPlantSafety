@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { api, API_BASE_URL } from "../services/api";
+import { useAuth } from "../auth/useAuth";
+import { canManageCompliance } from "../auth/permissions";
 import {
   Plus,
   Search,
@@ -48,8 +50,8 @@ interface ComplianceForm {
   responsible_user: string;
 }
 
-const API_URL = "http://localhost:5000/api/compliance";
-const DOCUMENT_API_URL = "http://localhost:5000/api/compliance-documents";
+const API_URL = "/compliance";
+const DOCUMENT_API_URL = "/compliance-documents";
 
 const emptyForm: ComplianceForm = {
   requirement_name: "",
@@ -133,6 +135,8 @@ function getExpiryStatus(record: ComplianceRecord): string {
 // =====================================================
 
 function Compliance() {
+  const { user } = useAuth();
+  const canManage = user ? canManageCompliance(user.roleName) : false;
   const [records, setRecords] = useState<ComplianceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -163,7 +167,7 @@ function Compliance() {
       setError("");
 
       const response =
-        await axios.get<ComplianceRecord[]>(API_URL);
+        await api.get<ComplianceRecord[]>(API_URL);
 
       setRecords(response.data);
     } catch (err) {
@@ -177,7 +181,11 @@ function Compliance() {
   };
 
   useEffect(() => {
-    void fetchRecords();
+    const timer = window.setTimeout(() => {
+      void fetchRecords();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   // =====================================================
@@ -263,12 +271,12 @@ function Compliance() {
       };
 
       if (editingId !== null) {
-        await axios.put(
+        await api.put(
           `${API_URL}/${editingId}`,
           payload
         );
       } else {
-        await axios.post(API_URL, payload);
+        await api.post(API_URL, payload);
       }
 
       closeForm();
@@ -297,7 +305,7 @@ function Compliance() {
     try {
       setError("");
 
-      await axios.delete(`${API_URL}/${id}`);
+      await api.delete(`${API_URL}/${id}`);
 
       await fetchRecords();
     } catch (err) {
@@ -314,7 +322,7 @@ function Compliance() {
     try {
       setDocumentsLoading(true);
       setDocumentError("");
-      const response = await axios.get<ComplianceDocument[]>(
+      const response = await api.get<ComplianceDocument[]>(
         `${DOCUMENT_API_URL}/requirement/${complianceId}`
       );
       setDocuments(response.data);
@@ -382,7 +390,7 @@ function Compliance() {
       payload.append("document_name", documentName.trim());
       payload.append("document", selectedFile);
 
-      await axios.post(DOCUMENT_API_URL, payload);
+      await api.post(DOCUMENT_API_URL, payload);
 
       setDocumentMessage("PDF uploaded successfully.");
       setDocumentName("");
@@ -411,7 +419,7 @@ function Compliance() {
     try {
       setDocumentError("");
       setDocumentMessage("");
-      await axios.delete(`${DOCUMENT_API_URL}/${document.document_id}`);
+      await api.delete(`${DOCUMENT_API_URL}/${document.document_id}`);
       setDocumentMessage("Document deleted successfully.");
       await fetchDocuments(documentRecord.compliance_id);
     } catch (err) {
@@ -472,13 +480,13 @@ function Compliance() {
           </p>
         </div>
 
-        <button
+        {canManage && <button
           className="primary-button"
           onClick={openAddForm}
         >
           <Plus size={18} />
           Add Requirement
-        </button>
+        </button>}
       </div>
 
       {/* ERROR MESSAGE */}
@@ -668,7 +676,7 @@ function Compliance() {
                             <FileText size={16} />
                           </button>
 
-                          <button
+                          {canManage && <button
                             className="icon-button"
                             title="Edit"
                             onClick={() =>
@@ -676,9 +684,9 @@ function Compliance() {
                             }
                           >
                             <Pencil size={16} />
-                          </button>
+                          </button>}
 
-                          <button
+                          {canManage && <button
                             className="icon-button danger"
                             title="Delete"
                             onClick={() =>
@@ -688,7 +696,7 @@ function Compliance() {
                             }
                           >
                             <Trash2 size={16} />
-                          </button>
+                          </button>}
                         </div>
                       </td>
                     </tr>
@@ -702,7 +710,7 @@ function Compliance() {
 
       {/* ADD / EDIT MODAL */}
 
-      {showForm && (
+      {canManage && showForm && (
         <div className="compliance-modal-backdrop">
           <div
             className="compliance-modal"
@@ -938,7 +946,7 @@ function Compliance() {
               </div>
             )}
 
-            <form onSubmit={handleDocumentUpload} className="compliance-document-form">
+            {canManage && <form onSubmit={handleDocumentUpload} className="compliance-document-form">
               <h3>Upload a PDF</h3>
               <label>
                 Document name *
@@ -971,7 +979,7 @@ function Compliance() {
                   {uploadingDocument ? "Uploading..." : "Upload PDF"}
                 </button>
               </div>
-            </form>
+            </form>}
 
             <div className="compliance-document-list">
               <h3>Uploaded Documents</h3>
@@ -1004,20 +1012,20 @@ function Compliance() {
                           className="icon-button"
                           title="Download PDF"
                           aria-label={`Download ${document.document_name}`}
-                          href={`${DOCUMENT_API_URL}/${document.document_id}/download`}
+                          href={`${API_BASE_URL}${DOCUMENT_API_URL}/${document.document_id}/download`}
                           target="_blank"
                           rel="noreferrer"
                         >
                           <Download size={16} />
                         </a>
-                        <button
+                        {canManage && <button
                           className="icon-button danger"
                           title="Delete document"
                           aria-label={`Delete ${document.document_name}`}
                           onClick={() => void handleDocumentDelete(document)}
                         >
                           <Trash2 size={16} />
-                        </button>
+                        </button>}
                       </div>
                     </div>
                   ))}

@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { getDashboardStats } from "../services/dashboardService.js";
+import {
+  getDashboardStats,
+  getRecentDashboardActivity,
+} from "../services/dashboardService.js";
 import redisClient from "../config/redis.js";
 
 const DASHBOARD_CACHE_KEY = "dashboard:stats";
@@ -18,9 +21,15 @@ export const getDashboard = async (
         if (cachedStats) {
           console.log("Dashboard cache hit");
 
+          const cachedData = JSON.parse(cachedStats) as Record<string, unknown>;
           res.status(200).json({
             success: true,
-            data: JSON.parse(cachedStats),
+            data: {
+              ...cachedData,
+              recent_activity: Array.isArray(cachedData.recent_activity)
+                ? cachedData.recent_activity
+                : [],
+            },
           });
 
           return;
@@ -33,7 +42,10 @@ export const getDashboard = async (
     // Cache miss or Redis unavailable: fetch from PostgreSQL
     console.log("Dashboard cache miss - fetching from PostgreSQL");
 
-    const stats = await getDashboardStats();
+    const [stats, recentActivity] = await Promise.all([
+      getDashboardStats(),
+      getRecentDashboardActivity(),
+    ]);
 
     const dashboardData = {
       chemicals: Number(stats.chemicals),
@@ -41,6 +53,7 @@ export const getDashboard = async (
       incidents: Number(stats.incidents),
       compliance: Number(stats.compliance),
       emergency_contacts: Number(stats.emergency_contacts),
+      recent_activity: recentActivity,
     };
 
     // Store the result in Redis for 30 seconds
