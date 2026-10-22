@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Navigate, NavLink, Outlet, Route, Routes } from "react-router-dom";
 import {
   ClipboardCheck,
@@ -45,24 +46,67 @@ function ProtectedLayout() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon"><FlaskConical size={24} /></div>
-          <div><div className="brand-title">CHEM-SAFE</div><div className="brand-subtitle">SAFETY MANAGEMENT</div></div>
+          <div>
+            <div className="brand-title">CHEM-SAFE</div>
+            <div className="brand-subtitle">SAFETY MANAGEMENT</div>
+          </div>
         </div>
+
         <nav className="sidebar-nav">
           <div className="nav-label">MAIN MENU</div>
-          {navigation.filter((item) => canAccessPage(user.roleName, item.page)).map(({ name, path, icon: Icon }) => (
-            <NavLink key={path} to={path} end={path === "/"} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <Icon size={19} /><span>{name}</span>
-            </NavLink>
-          ))}
+          {navigation
+            .filter((item) => canAccessPage(user.roleName, item.page))
+            .map(({ name, path, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                end={path === "/"}
+                className={({ isActive }) =>
+                  `nav-item ${isActive ? "active" : ""}`
+                }
+              >
+                <Icon size={19} />
+                <span>{name}</span>
+              </NavLink>
+            ))}
         </nav>
-        <div className="sidebar-footer"><div className="system-status"><span className="status-dot"></span><div><div className="status-title">System Online</div><div className="status-text">{user.roleName}</div></div></div></div>
+
+        <div className="sidebar-footer">
+          <div className="system-status">
+            <span className="status-dot"></span>
+            <div>
+              <div className="status-title">System Online</div>
+              <div className="status-text">{user.roleName}</div>
+            </div>
+          </div>
+        </div>
       </aside>
+
       <main className="main-content">
         <header className="topbar">
-          <div><span className="topbar-label">CHEMICAL PLANT</span><h2>Safety & Compliance Management</h2></div>
-          <div className="topbar-right"><div className="user-info"><div className="user-avatar">{user.fullName.slice(0, 2).toUpperCase()}</div><div><div className="user-name">{user.fullName}</div><div className="user-role">{user.roleName}</div></div><button type="button" onClick={() => void logout()}>Log out</button></div></div>
+          <div>
+            <span className="topbar-label">CHEMICAL PLANT</span>
+            <h2>Safety &amp; Compliance Management</h2>
+          </div>
+          <div className="topbar-right">
+            <div className="user-info">
+              <div className="user-avatar">
+                {user.fullName.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div className="user-name">{user.fullName}</div>
+                <div className="user-role">{user.roleName}</div>
+              </div>
+              <button type="button" onClick={() => void logout()}>
+                Log out
+              </button>
+            </div>
+          </div>
         </header>
-        <div className="page-content"><Outlet /></div>
+
+        <div className="page-content">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
@@ -71,18 +115,75 @@ function ProtectedLayout() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/ChemicalPlantSafety">
         <Routes>
           <Route path="/login" element={<Login />} />
+
           <Route element={<ProtectedLayout />}>
-            <Route path="/" element={<RoleGuard page="dashboard"><Dashboard /></RoleGuard>} />
-            <Route path="/chemicals" element={<RoleGuard page="chemicals"><Chemicals /></RoleGuard>} />
-            <Route path="/inspections" element={<RoleGuard page="inspections"><Inspections /></RoleGuard>} />
-            <Route path="/incidents" element={<RoleGuard page="incidents"><Incidents /></RoleGuard>} />
-            <Route path="/emergency" element={<RoleGuard page="emergency"><Emergency /></RoleGuard>} />
-            <Route path="/compliance" element={<RoleGuard page="compliance"><Compliance /></RoleGuard>} />
-            <Route path="/monitoring" element={<RoleGuard page="monitoring"><Monitoring /></RoleGuard>} />
-            <Route path="/users" element={<RoleGuard page="userManagement"><UserManagement /></RoleGuard>} />
+            <Route
+              path="/"
+              element={
+                <RoleGuard page="dashboard">
+                  <Dashboard />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/chemicals"
+              element={
+                <RoleGuard page="chemicals">
+                  <Chemicals />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/inspections"
+              element={
+                <RoleGuard page="inspections">
+                  <Inspections />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/incidents"
+              element={
+                <RoleGuard page="incidents">
+                  <Incidents />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/emergency"
+              element={
+                <RoleGuard page="emergency">
+                  <Emergency />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/compliance"
+              element={
+                <RoleGuard page="compliance">
+                  <Compliance />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/monitoring"
+              element={
+                <RoleGuard page="monitoring">
+                  <Monitoring />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <RoleGuard page="userManagement">
+                  <UserManagement />
+                </RoleGuard>
+              }
+            />
           </Route>
         </Routes>
       </BrowserRouter>
